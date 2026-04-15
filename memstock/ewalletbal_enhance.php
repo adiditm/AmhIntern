@@ -1,11 +1,15 @@
-<? 
-	       if ($_GET['op'] == '') 
-           include_once("../framework/admin_headside.blade.php");
-        else
-           include_once("../framework/member_headside.blade.php") ;  
+<?php
+if (session_status() != PHP_SESSION_ACTIVE) {
+    session_start();
+}
 
-
-        
+$vUseAdminLayout = ($_GET['op'] != '' || $_SESSION['Priv'] == 'seller');
+if ($vUseAdminLayout)
+    include_once("../framework/admin_headside.blade.php");
+else
+    include_once("../framework/member_headside.blade.php");
+?>
+<?
   $vRefURL=$_SERVER['HTTP_REFERER'];
 
   if ($vRefURL=="")
@@ -20,13 +24,15 @@
 
   $vSpy = md5('spy').md5($_GET['uMemberId']);
 
-   //if ($_GET['op']==$vSpy)
-
-    // echo $vPriv."ssssssss"; 
-  if ($vPriv == 'administrator')	  
-     $vUserChoosed=$_POST['lmKor']; 
-  else 	 
+  if ($vPriv == 'administrator') {
+     $vUserChoosed=$_POST['lmKor'];
+     if ($vUserChoosed=='' && $_GET['op']==$vSpy && $vRefUser!='')
+        $vUserChoosed=$vRefUser;
+  } else {
      $vUserChoosed=$vUser;
+     if ($vPriv=='seller' && $_GET['op']==$vSpy && $vRefUser!='')
+        $vUserChoosed=$vRefUser;
+  }
 
 
 if ($vPriv=='sponsor')
@@ -42,13 +48,17 @@ if ($vPriv=='sponsor')
 				$vUserChoosed = $oDB->f('fidbisnis');	
 			}
 
-/*  if (isset($vRefUser))
+ if ($vUserChoosed=='')
+    $vUserChoosed=$_SESSION['LoginUser'];
 
-  	 $vUserChoosed=$vRefUser;
+ $vUserDisplayName=$vUserChoosed;
+ if ($vPriv=='seller')
+    $vUserDisplayName=$oMember->getMemFieldSell('fnama',$vUserChoosed);
+ else
+    $vUserDisplayName=$oMember->getMemberName($vUserChoosed);
 
-  else	 
-
-  	 $vUserChoosed=$_SESSION['LoginUser'];*/
+ if ($vUserDisplayName==-1 || $vUserDisplayName=='')
+    $vUserDisplayName=$vUserChoosed;
 
 
 
@@ -129,9 +139,9 @@ if ($vPriv=='sponsor')
 $(document).ready(function(){
 
   <? if ($oDetect->isMobile()) {?>
-  $('#caption').html('<span data-toggle="tooltip" data-placement="top" title="Mutasi Saldo Cash <?=$oMember->getMemberName($vUserChoosed)?>"><?=substr("Mutasi Cash ".$oMember->getMemberName($vUserChoosed),0,20);?>...</span>');
+  $('#caption').html('<span data-toggle="tooltip" data-placement="top" title="Mutasi Saldo Cash <?=$vUserDisplayName?>"><?=substr("Mutasi Cash ".$vUserDisplayName,0,20);?>...</span>');
   <? } else { ?>
-	 $('#caption').html('Mutasi Saldo Cash <?=$vUserChoosed?>');
+	 $('#caption').html('Mutasi Saldo Cash <?=$vUserDisplayName?>');
   <? } ?>
       
 $('[data-toggle="tooltip"]').tooltip({tooltipClass:"ttclass"});  
@@ -163,8 +173,9 @@ $('[data-toggle="tooltip"]').tooltip({tooltipClass:"ttclass"});
     $(this).datepicker('hide');
     });  
  
-
+   <? if ($vPriv!='seller') { ?>
    $('#lmKor').select2();
+   <? } ?>
 
 });	
 
@@ -278,29 +289,33 @@ table td {
        <div class="col-lg-8 " align="left" style="margin-left:-1em">
 
 
+<? if ($vPriv=='seller') { ?>
 <div class="row ">
-            <div align="left" class="col-sm-4"><strong><? if ($vPriv !='seller') {?>Korwil / Pebisnis <? } else {?>Seller<? } ?></strong></div>
+            <div align="left" class="col-sm-4"><strong>Seller </strong></div>
+            <div align="left" class="col-sm-6 col-md-6 col-xs-6">
+              <input type="text" class="form-control" value="<?=$vUserChoosed?> - <?=$vUserDisplayName?>" readonly />
+            </div>
+          </div>
+<? } else { ?>
+<div class="row ">
+            <div align="left" class="col-sm-4"><strong>Korwil / Pebisnis </strong></div>
             <div align="left" class="col-sm-6 col-md-6 col-xs-6">
    
-
               <select name="lmKor" id="lmKor" class="form-control">
 				<? if ($vPriv=='administrator') { ?>
                 <option selected="selected" value="">--Pilih--</option>
                 <? } ?>
 				<?
-                   $vUserX="";$vAndSP='';$vAndKor='';$vAndsell='';
+                   $vUserX="";$vAndSP='';$vAndKor='';
 				   if ($vPriv!='administrator') {
 				      $vUserX=$_SESSION['LoginUser'];
 				   	  $vAndSP .=" and fidmember='$vUserX'";
 					  $vAndKor .=" and fidkorwil='$vUserX'";
-					  $vAndSell .=" and fidseller='$vUserX'";
 				   }
 				   	  
 				   $vSQL="select fidmember, fnama from m_pebisnis where 1 $vAndSP ";
 				   $vSQL .= " union ";
 				    $vSQL .="select fidkorwil as fidmember, fnama from m_korwil where faktif='1' $vAndKor ";
-					$vSQL .= " union ";
-				    $vSQL .="select fidseller as fidmember, fnama from m_seller where faktif='1' $vAndSell ";
 				   $db->query($vSQL);
 				   while ($db->next_record()) {
 					   $vID = $db->f('fidmember');
@@ -314,6 +329,7 @@ table td {
 
             </div>
           </div>
+<? } ?>
 <br />
 <div class="row">
             <div align="left" class="col-sm-4"><strong>Date </strong></div>
@@ -665,4 +681,4 @@ table td {
 
 	</script>
 
-<? include_once("../framework/member_footside.blade.php") ; ?>
+<? if ($vUseAdminLayout) include_once("../framework/admin_footside.blade.php"); else include_once("../framework/member_footside.blade.php"); ?>
