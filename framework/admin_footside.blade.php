@@ -46,6 +46,6 @@
     <script src="../build/js/custom.min.js"></script>
 	
     <!-- Chat AI Widget -->
-    <? include_once("../framework/chat_widget.blade.php"); ?>
+    <? // include_once("../framework/chat_widget.blade.php"); ?>
   </body>
 </html>

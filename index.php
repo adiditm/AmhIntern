@@ -4,7 +4,7 @@
     include_once("server/config.php");
 
 	if ($_SESSION['LoggedIn']=="Yes") {
-      if ($_SESSION['Priv']=='administrator')
+      if (c='administrator')
 	  	header("Location: manager/indexadmin.php");
 	  else
 	  	header("Location: memstock/indexmem.php");
