@@ -113,6 +113,41 @@ UI uses Blade-syntax fragments from `framework/` (e.g., `manager_topnav.blade.ph
 - **`pxx/`** — contains a bundled phpMyAdmin installation used for direct DB administration on the server.
 - **Additional classes** — beyond the core list: `shopclass.php` (cart/shop logic), `espayclass.php` (e-payment gateway integration), `antaclass.php` (Antasena courier integration), `imageclass.php` (image upload/resize), `prefixclass.php` (member ID prefix rules), `processtrans.php` (transaction processing helpers), `shopclass.php` (product shop flow).
 
+## Agent Capabilities
+
+### Image Reading & Analysis (Juli 2026)
+
+Agent mampu membaca dan menganalisis image dengan kemampuan berikut:
+
+1. **UI Screenshot Analysis** — Agent bisa membaca screenshot halaman web yang dikirim user (PNG, JPEG, WebP, GIF) untuk:
+   - Debug bug UI/layout (misal: tabel terpotong, modal tidak muncul, CSS rusak)
+   - Membaca error message dari console / alert / notifikasi di halaman
+   - Membandingkan tampilan sebelum-sesudah perubahan kode
+
+2. **Project Asset Inspection** — Agent bisa membaca file image di dalam workspace `Z:\ProjectsX\AMHIntern` menggunakan tool `read_image`:
+   - Path umum image produk: `images/product/`, `images/tour/`, `images/member/`
+   - KTP / foto member: lokasi biasanya di folder `upload/` atau `fileupload/`
+   - Gambar template struk, banner, logo di `framework/images/` atau `assets/`
+   - Supported: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`
+   - Image akan otomatis divalidasi dan di-downscale jika terlalu besar
+
+3. **OCR / Text Extraction** — Agent bisa mengekstrak teks dari image menggunakan vision capability, berguna untuk:
+   - Baca KTP member saat verifikasi data
+   - Baca struk transfer / bukti pembayaran
+   - Baca screenshot pesan WhatsApp / chat untuk input data manual
+   - Baca screenshot error log / stack trace dari browser
+
+4. **Image Generation / Editing** — Agent bisa generate atau edit image menggunakan AI image tools (DALL-E / image generation) ketika user meminta:
+   - Generate banner promo
+   - Generate mockup UI untuk desain
+   - Edit image produk (resize, crop via prompt)
+
+### Cara Pakai
+- Kirim image langsung via chat (drag-drop atau paste) untuk UI screenshot
+- Sebut path file (contoh: `images/product/foto123.jpg`) untuk baca image di project
+- Untuk OCR, cukup kirim image + instruksi "extract teks dari ini"
+- Untuk generate, minta dengan prompt deskriptif (contoh: "buatkan banner promo MLM hijau-emas")
+
 ## Current Task Status (June 2026)
 
 ### Done
@@ -132,3 +167,16 @@ UI uses Blade-syntax fragments from `framework/` (e.g., `manager_topnav.blade.ph
   - Agent memiliki koneksi MCP bernama `php-mysql-bridge` (juga dikenal sebagai "razor") yang dapat mengakses database langsung lewat eksekusi proxy PHP (`myrzrbrdg.php`).
   - MCP ini bisa digunakan untuk mengakses `amhtechn_intern`, `amhtechn_intrial`, dan `amhtechn_intrain`.
   - Tools MCP ini bisa dipanggil menggunakan `call_mcp_tool` (dengan tool name `execute_query` atau `execute_update`) atau dijalankan via Node CLI (`node C:\Users\didit\.gemini\antigravity-cli\mcp\php-mysql-bridge\index.js`) jika belum terload ke system.
+  - **Di DSH Desktop**: MCP bridge tidak bisa dipanggil langsung via PowerShell (Windows SSL/Schannel error). Gunakan **Node.js inline script** dengan `https` module dan `rejectUnauthorized: false` untuk bypass SSL. Format request: `application/x-www-form-urlencoded` dengan field `service_password`, `host`, `port`, `user`, `password`, `database`, `action` (`Statement::executeQuery` atau `Statement::executeUpdate`), `query`, `fetchSize`, `fetchAll`. Response format: `|COLUMNS|col1!~!col2!~!|VALUES|val1!~!val2!~!|END_ROW|`.
+
+- **Bonus Hasil Penjualan — Perubahan ke Persentase (Juli 2026)**:
+  - **Sebelum**: `fbnssponhp` di `tb_rules_bnskorwil` berisi nominal flat (misal `5000` = Rp 5.000 langsung).
+  - **Sesudah**: `fbnssponhp` berisi **persentase dari fee AMH (fpotong)**. Contoh: `fbnssponhp=50` artinya 50% dari total fee AMH.
+  - **Rumus baru**: `Bonus = (Σ fsubtotal × fpotong/100) × fbnssponhp/100`. Dimana `fpotong` dari `m_product`, `fbnssponhp` dari `tb_rules_bnskorwil` (via `m_product.fprogram = tb_rules_bnskorwil.fidprogram`).
+  - **Contoh**: Zamzam 2×100.000=200.000, fpotong=5% → fee AMH=10.000, fbnssponhp=50% → bonus=5.000.
+  - Perubahan kode di [manager/processing_ajax.php](file:///Z:/ProjectsX/AMHIntern/manager/processing_ajax.php) blok `approvesell && kind=prd`:
+    - Variabel `$vSellBonusAmt` (nominal flat) diganti `$vSellBonusRate` (persentase).
+    - Bonus dihitung setelah `$vFeeAminah` terkumpul dari loop item: `$vSellBonusAmt = $vFeeAminah * $vSellBonusRate / 100`.
+    - Deskripsi mutasi di `tb_mutasi` dibuat transparan: `"Bonus hasil penjualan J... (50% x 10.000)"`.
+    - Potongan admin fee (`fbyyadmin%`) dari bonus tetap tidak berubah.
+  - **Admin perlu update** nilai `fbnssponhp` di `tb_rules_bnskorwil` dari nominal (misal `5000`) ke persentase (misal `50`) secara manual.
