@@ -172,7 +172,7 @@ $opts['fdd']['fbnsspon'] = array(
 );
 
 $opts['fdd']['fbnssponhp'] = array(
-  'name'     => 'Bns Hasil Penjualan (Nominal)',
+  'name'     => 'Bns Hsl Jual Produk - Pebisnis (Prosentase)',
   'select'   => 'T',
   'maxlen'   => 25,
   'colattrs' => 'style="text-align:right;padding-right:30px"',
